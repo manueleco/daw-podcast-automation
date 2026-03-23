@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
-from .audio import LoudnessMeasurement, correct_loudness, measure_loudness
+from .analyze import AnalyzeTrackError, AnalyzeTrackSummary, analyze_track
+from .audio import LoudnessError, LoudnessMeasurement, correct_loudness, measure_loudness
 from .fs import copy_logic_project
-from .logic import BounceRequest, bounce_project, open_project_in_logic
+from .logic import BounceRequest, LogicAutomationError, bounce_project, open_project_in_logic
 from .prepare import prepare_voice_tracks
 from .profiles import get_profile
 from .workflow import build_run_plan, discover_logic_projects, resolve_logic_project_path
@@ -123,6 +125,31 @@ def build_parser() -> argparse.ArgumentParser:
     final_master.add_argument("--profile", default="podcast-stereo", help="Perfil a usar.")
     final_master.add_argument("--dual-mono", action="store_true", help="Trata mono como dual mono.")
 
+    analyze_track_cmd = subparsers.add_parser(
+        "analyze-track",
+        help="Analiza un audio por ventanas para detectar tramos demasiado bajos o altos.",
+    )
+    analyze_track_cmd.add_argument("--input", type=Path, required=True, help="Archivo de audio.")
+    analyze_track_cmd.add_argument("--report", type=Path, help="Ruta del JSON de salida.")
+    analyze_track_cmd.add_argument(
+        "--window-seconds",
+        type=float,
+        default=0.25,
+        help="Tamano de ventana para el analisis.",
+    )
+    analyze_track_cmd.add_argument(
+        "--delta-db",
+        type=float,
+        default=6.0,
+        help="Desviacion en dB sobre la referencia para marcar una ventana.",
+    )
+    analyze_track_cmd.add_argument(
+        "--silence-top-db",
+        type=float,
+        default=35.0,
+        help="Threshold para ignorar silencio de fondo.",
+    )
+
     return parser
 
 
@@ -232,6 +259,7 @@ def cmd_run(
     print(f"prepare_mix_voice_files: {prepare_summary.voice_files}")
     print(f"prepare_mix_adjusted_files: {prepare_summary.adjusted_files}")
 
+    _emit_stage("plugin-setup", "Pendiente: insercion/configuracion automatica de plugins en Logic aun no implementada")
     _emit_stage("logic-bounce", "Generando bounce en Logic Pro")
     bounce_project(
         BounceRequest(
@@ -297,6 +325,24 @@ def cmd_final_master(input_path: Path, output_path: Path, profile_name: str, dua
     return result
 
 
+def cmd_analyze_track(
+    input_path: Path,
+    report_path: Path | None,
+    window_seconds: float,
+    delta_db: float,
+    silence_top_db: float,
+) -> int:
+    summary = analyze_track(
+        input_path=input_path,
+        report_path=report_path,
+        window_seconds=window_seconds,
+        delta_db=delta_db,
+        silence_top_db=silence_top_db,
+    )
+    _print_analyze_summary(summary)
+    return 0
+
+
 def _print_measurement(measurement: LoudnessMeasurement) -> None:
     print(f"input_path: {measurement.input_path}")
     print(f"integrated_lufs: {measurement.integrated_lufs}")
@@ -316,37 +362,68 @@ def _emit_stage(stage_key: str, message: str) -> None:
     print(f"[stage:{stage_key}] {message}", flush=True)
 
 
+def _print_analyze_summary(summary: AnalyzeTrackSummary) -> None:
+    print(f"input_path: {summary.input_path}")
+    print(f"sample_rate_hz: {summary.sample_rate_hz}")
+    print(f"duration_seconds: {summary.duration_seconds}")
+    print(f"reference_rms_dbfs: {summary.reference_rms_dbfs}")
+    print(f"active_window_count: {summary.active_window_count}")
+    print(f"problematic_window_count: {summary.problematic_window_count}")
+    print(f"report_path: {summary.report_path}")
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.command == "scan":
-        return cmd_scan(args.root)
-    if args.command == "profile":
-        return cmd_profile(args.name)
-    if args.command == "plan":
-        return cmd_plan(args.source, args.profile, args.output_root)
-    if args.command == "measure":
-        return cmd_measure(args.input, args.profile, args.dual_mono)
-    if args.command == "correct":
-        return cmd_correct(args.input, args.output, args.profile, args.dual_mono)
-    if args.command == "logic-open":
-        return cmd_logic_open(args.source, args.wait_seconds)
-    if args.command == "logic-bounce":
-        return cmd_logic_bounce(args.source, args.output, args.wait_seconds, args.timeout_seconds)
-    if args.command == "run":
-        return cmd_run(
-            source=args.source,
-            profile_name=args.profile,
-            output_root=args.output_root,
-            wait_seconds=args.wait_seconds,
-            timeout_seconds=args.timeout_seconds,
-            dual_mono=args.dual_mono,
-        )
-    if args.command == "prepare-mix":
-        return cmd_prepare_mix(args.source, args.profile, args.output_root, args.open_in_logic)
-    if args.command == "final-master":
-        return cmd_final_master(args.input, args.output, args.profile, args.dual_mono)
+    try:
+        if args.command == "scan":
+            return cmd_scan(args.root)
+        if args.command == "profile":
+            return cmd_profile(args.name)
+        if args.command == "plan":
+            return cmd_plan(args.source, args.profile, args.output_root)
+        if args.command == "measure":
+            return cmd_measure(args.input, args.profile, args.dual_mono)
+        if args.command == "correct":
+            return cmd_correct(args.input, args.output, args.profile, args.dual_mono)
+        if args.command == "logic-open":
+            return cmd_logic_open(args.source, args.wait_seconds)
+        if args.command == "logic-bounce":
+            return cmd_logic_bounce(args.source, args.output, args.wait_seconds, args.timeout_seconds)
+        if args.command == "run":
+            return cmd_run(
+                source=args.source,
+                profile_name=args.profile,
+                output_root=args.output_root,
+                wait_seconds=args.wait_seconds,
+                timeout_seconds=args.timeout_seconds,
+                dual_mono=args.dual_mono,
+            )
+        if args.command == "prepare-mix":
+            return cmd_prepare_mix(args.source, args.profile, args.output_root, args.open_in_logic)
+        if args.command == "final-master":
+            return cmd_final_master(args.input, args.output, args.profile, args.dual_mono)
+        if args.command == "analyze-track":
+            return cmd_analyze_track(
+                args.input,
+                args.report,
+                args.window_seconds,
+                args.delta_db,
+                args.silence_top_db,
+            )
+    except (
+        AnalyzeTrackError,
+        LoudnessError,
+        LogicAutomationError,
+        FileNotFoundError,
+        FileExistsError,
+        PermissionError,
+        TimeoutError,
+        ValueError,
+    ) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     parser.error(f"Comando no soportado: {args.command}")
     return 2

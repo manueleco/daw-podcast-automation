@@ -8,6 +8,7 @@
 - Separar mejor `prepare mix` de `final master` en la app y el CLI.
 - Revisar si la ganancia base por archivo de voz esta acercando bien a las voces o necesita otro target.
 - Soportar bien proyectos Logic en formato `project folder`, no solo `.logicx` autocontenido.
+- Definir la estrategia real de `plugin setup` para stock plugins de Logic en tracks y master.
 
 ## Todo
 
@@ -22,6 +23,8 @@
 - Detectar mejor voces cuando los nombres de archivos no ayudan.
 - Añadir preflight para permisos de macOS antes del bounce.
 - Detectar assets externos y avisar si falta material o si el proyecto vive en cloud storage.
+- Integrar VAD para refinar `analyze-track` y no tratar musica/ruido como voz.
+- Traducir el reporte de `analyze-track` a puntos de automation de Logic.
 - Preparar una carpeta de fixtures o episodios dummy para pruebas.
 - Añadir tests para discovery, planes de ejecucion y reglas de naming.
 - Documentar el setup minimo en macOS para permisos de automatizacion.
@@ -43,6 +46,7 @@
 - Launcher actualizado para correr visible en Terminal.
 - Comando `prepare-mix` añadido.
 - Primera pasada de ganancia base por archivo de voz antes del bounce añadida.
+- Comando `analyze-track` preparado con `librosa` como dependencia opcional.
 
 ## Ideas
 
@@ -52,6 +56,7 @@
 - Traducir a Logic solo cuando tengamos claro el modelo: `track automation`, `region gain`, o render destructivo sobre la working copy.
 - Si los nombres no ayudan, probar deteccion de voz por rasgos del audio y excluir musica/fx por heuristicas antes de tocar ganancia.
 - Para lanes tipo la imagen, generar primero puntos candidatos de automation en JSON antes de escribirlos en Logic.
+- Cuando implementemos plugins, empezar por cadenas fijas de stock plugins: voz y master, sin intentar configurar todo de una sola vez.
 
 ## Notas
 
