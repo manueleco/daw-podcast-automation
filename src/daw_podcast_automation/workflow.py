@@ -8,6 +8,7 @@ from pathlib import Path
 from .profiles import PodcastProfile
 
 LOGIC_PROJECT_SUFFIX = ".logicx"
+LOGIC_PROJECT_FOLDER_MARKER = ".musicapps-project-folder"
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,22 @@ class RunPlan:
     target_integrated_lufs: float
     target_true_peak_dbtp: float
     steps: tuple[str, ...]
+
+
+def is_logic_project_folder(project_path: Path) -> bool:
+    project_path = resolve_logic_project_path(project_path)
+    return project_path.parent.joinpath(LOGIC_PROJECT_FOLDER_MARKER).exists()
+
+
+def get_logic_project_container(project_path: Path) -> Path:
+    project_path = resolve_logic_project_path(project_path)
+    if is_logic_project_folder(project_path):
+        return project_path.parent
+    return project_path
+
+
+def get_logic_project_analysis_root(project_path: Path) -> Path:
+    return get_logic_project_container(project_path)
 
 
 def resolve_logic_project_path(source: Path) -> Path:
@@ -105,11 +122,16 @@ def build_run_plan(
 ) -> RunPlan:
     source_project = resolve_logic_project_path(source_project)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    base_name = source_project.stem
-    suffix = source_project.suffix
+    source_container = get_logic_project_container(source_project)
+    if source_container == source_project:
+        base_name = source_project.stem
+        suffix = source_project.suffix
+    else:
+        base_name = source_container.name
+        suffix = ""
 
     if output_root is None:
-        output_root = source_project.parent
+        output_root = source_container.parent
     else:
         output_root = output_root.expanduser().resolve()
 

@@ -136,6 +136,10 @@ def _run_osascript(script: str, *, require_ui: bool) -> str:
         raise LogicAutomationError(
             "La automatizacion UI no tiene permisos. Activa Accessibility y Automation para la app que ejecute este script y vuelve a probar."
         )
+    if require_ui and ("not allowed to send keystrokes" in message.lower() or "(1002)" in message):
+        raise LogicAutomationError(
+            "macOS esta bloqueando el envio de keystrokes. Activa Accessibility para Terminal y para DAW Podcast Automation.app, y si hace falta Input Monitoring para Terminal. Luego vuelve a abrir la app."
+        )
     raise LogicAutomationError(message)
 
 

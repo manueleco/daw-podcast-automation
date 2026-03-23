@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .audio import correct_loudness, measure_loudness, probe_audio_stream
 from .profiles import PodcastProfile
+from .workflow import get_logic_project_analysis_root
 
 AUDIO_FILE_EXTENSIONS = {".wav", ".aif", ".aiff", ".caf"}
 
@@ -37,7 +38,7 @@ def prepare_voice_tracks(
     *,
     loudness_tolerance_db: float = 1.0,
 ) -> PrepareMixSummary:
-    project_path = project_path.expanduser().resolve()
+    project_path = get_logic_project_analysis_root(project_path.expanduser().resolve())
     audio_files = find_project_audio_files(project_path)
     track_profile = build_voice_track_profile(profile)
     adjustments: list[VoiceTrackAdjustment] = []

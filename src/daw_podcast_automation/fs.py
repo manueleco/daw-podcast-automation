@@ -3,11 +3,11 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from .workflow import resolve_logic_project_path
+from .workflow import get_logic_project_container, resolve_logic_project_path
 
 
 def copy_logic_project(source: Path, destination: Path) -> Path:
-    source = resolve_logic_project_path(source)
+    source = get_logic_project_container(resolve_logic_project_path(source))
     destination = destination.expanduser().resolve()
 
     if not source.exists():
