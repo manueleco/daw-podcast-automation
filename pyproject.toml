@@ -16,6 +16,9 @@ analysis = [
   "librosa>=0.10",
   "soundfile>=0.12",
 ]
+app = [
+  "pywebview>=5.4",
+]
 
 [project.scripts]
 daw-podcast-automation = "daw_podcast_automation.cli:main"

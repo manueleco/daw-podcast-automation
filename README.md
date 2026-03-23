@@ -55,6 +55,8 @@ Fuera de alcance por ahora:
 - `config/podcast-default.yaml`: ejemplo de configuracion
 - `src/daw_podcast_automation/`: codigo base del CLI
 - `macos/DAW Podcast Automation.js`: launcher GUI para macOS
+- `src/daw_podcast_automation/gui.py`: app de escritorio con ventana propia
+- `src/daw_podcast_automation/gui_assets/`: interfaz y estilos de la app
 - `build-macos-app.command`: builder de la app clickable
 - `.internal/`: notas operativas fuera de commit
 
@@ -84,10 +86,10 @@ Para generar la app clickable:
 
 Esto crea `DAW Podcast Automation.app` en el root del repo. Al abrirla:
 
-- eliges el proyecto o carpeta de Logic
-- eliges carpeta de salida
-- eliges el perfil
-- se abre Terminal con el progreso visible del flujo completo
+- abre una ventana propia de escritorio
+- permite lanzar `Full run` o `Prepare mix`
+- permite correr `Analyze track`
+- muestra logs y estado del proceso dentro de la app
 
 ## Permisos
 
@@ -96,6 +98,10 @@ La parte de UI para Logic Pro necesita permisos de `Accessibility` y `Automation
 ## Estado del plugin setup
 
 La insercion/configuracion automatica de plugins stock de Logic todavia no esta implementada. El flujo actual prepara ganancia base de voces, hace bounce y corrige el master final.
+
+## Sesiones largas
+
+Tracks de mas de 1 hora y proyectos con 4 a 10 tracks son un caso valido para esta arquitectura. El analisis y el bounce son procesos offline y lineales, asi que tardaran, pero no dependen de tener clips cortos.
 
 ## Siguiente foco
 

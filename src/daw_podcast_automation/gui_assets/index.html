@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DAW Podcast Automation</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand-card">
+          <div class="brand-mark">DPA</div>
+          <div>
+            <p class="eyebrow">Podcast workflow</p>
+            <h1>DAW Podcast Automation</h1>
+            <p class="lede">
+              Clona el proyecto, prepara voces, hace bounce en Logic y corrige el master final.
+            </p>
+          </div>
+        </div>
+
+        <section class="info-card">
+          <p class="section-label">Estado del flujo</p>
+          <ul class="phase-list">
+            <li>Prepare mix: nivel base de voces por archivo</li>
+            <li>Logic bounce: abre Logic y dispara el bounce</li>
+            <li>Final master: mide y corrige loudness final</li>
+          </ul>
+        </section>
+
+        <section class="info-card warning-card">
+          <p class="section-label">Importante</p>
+          <p>
+            La insercion automatica de plugins stock de Logic todavia no esta implementada.
+            Esta app hoy trabaja con prepare mix, bounce y master final.
+          </p>
+        </section>
+
+        <section class="info-card">
+          <p class="section-label">Sesiones largas</p>
+          <p>
+            Grabaciones de 1 hora y proyectos con 4 a 10 tracks son viables. El proceso es offline
+            y secuencial, asi que tardara mas, pero la UI se mantiene viva y con logs.
+          </p>
+        </section>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Control center</p>
+            <h2>Run Session</h2>
+          </div>
+          <div class="pill-row">
+            <span class="pill pill-soft" id="runtime-pill">Listo</span>
+            <span class="pill" id="python-pill">Python</span>
+          </div>
+        </header>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Proyecto Logic</h3>
+              <p>Selecciona el proyecto o la carpeta que contiene el `.logicx`.</p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>Proyecto</span>
+              <div class="picker-row">
+                <input id="project-path" type="text" placeholder="Selecciona un proyecto de Logic" />
+                <button class="ghost-button" id="pick-project">Elegir</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>Carpeta de salida</span>
+              <div class="picker-row">
+                <input id="output-path" type="text" placeholder="Selecciona una carpeta" />
+                <button class="ghost-button" id="pick-output">Elegir</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>Perfil</span>
+              <select id="profile-select"></select>
+            </label>
+
+            <label class="field">
+              <span>Modo</span>
+              <select id="mode-select">
+                <option value="run">Full run</option>
+                <option value="prepare-mix">Prepare mix</option>
+              </select>
+            </label>
+
+            <label class="checkbox-field">
+              <input id="open-in-logic" type="checkbox" />
+              <span>Abrir copia en Logic al terminar `prepare mix`</span>
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button class="primary-button" id="run-session">Run Session</button>
+            <button class="ghost-button" id="open-output">Abrir salida</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Analyze Track</h3>
+              <p>Detecta tramos demasiado bajos o altos para preparar automation futura.</p>
+            </div>
+          </div>
+          <div class="form-grid analysis-grid">
+            <label class="field field-wide">
+              <span>Track de audio</span>
+              <div class="picker-row">
+                <input id="track-path" type="text" placeholder="Selecciona un wav, aif, aiff o caf" />
+                <button class="ghost-button" id="pick-track">Elegir</button>
+              </div>
+            </label>
+
+            <label class="field field-wide">
+              <span>Reporte JSON</span>
+              <input id="track-report" type="text" placeholder="Ruta opcional del reporte" />
+            </label>
+
+            <label class="field">
+              <span>Ventana (s)</span>
+              <input id="window-seconds" type="number" min="0.05" step="0.05" value="0.25" />
+            </label>
+
+            <label class="field">
+              <span>Delta (dB)</span>
+              <input id="delta-db" type="number" min="1" step="0.5" value="6.0" />
+            </label>
+
+            <label class="field">
+              <span>Silence top dB</span>
+              <input id="silence-top-db" type="number" min="10" step="1" value="35.0" />
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button class="secondary-button" id="analyze-track">Analyze Track</button>
+          </div>
+        </section>
+
+        <section class="panel log-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Activity</h3>
+              <p>Logs en vivo del proceso y errores claros cuando algo necesita atencion.</p>
+            </div>
+            <button class="ghost-button" id="clear-log">Limpiar</button>
+          </div>
+          <div class="log-surface" id="log-surface"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

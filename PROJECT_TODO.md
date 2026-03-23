@@ -9,6 +9,7 @@
 - Revisar si la ganancia base por archivo de voz esta acercando bien a las voces o necesita otro target.
 - Soportar bien proyectos Logic en formato `project folder`, no solo `.logicx` autocontenido.
 - Definir la estrategia real de `plugin setup` para stock plugins de Logic en tracks y master.
+- Validar la nueva desktop app con ventana propia sobre proyectos reales largos.
 
 ## Todo
 
@@ -25,6 +26,8 @@
 - Detectar assets externos y avisar si falta material o si el proyecto vive en cloud storage.
 - Integrar VAD para refinar `analyze-track` y no tratar musica/ruido como voz.
 - Traducir el reporte de `analyze-track` a puntos de automation de Logic.
+- Añadir cancelacion de procesos y barra de progreso mas detallada en la desktop app.
+- Añadir presets visuales/instrucciones para episodios largos con muchas tracks.
 - Preparar una carpeta de fixtures o episodios dummy para pruebas.
 - Añadir tests para discovery, planes de ejecucion y reglas de naming.
 - Documentar el setup minimo en macOS para permisos de automatizacion.
@@ -47,6 +50,7 @@
 - Comando `prepare-mix` añadido.
 - Primera pasada de ganancia base por archivo de voz antes del bounce añadida.
 - Comando `analyze-track` preparado con `librosa` como dependencia opcional.
+- Desktop app con ventana propia y logs embebidos añadida.
 
 ## Ideas
 
