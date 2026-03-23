@@ -63,16 +63,42 @@ tell application "System Events"
         delay 0.5
 
         set bounceOpened to false
-        repeat with menuItemName in {{"Project or Section...", "Project or Section…", "Project or Section"}}
+        repeat with fileMenuName in {{"File", "Archivo"}}
             try
-                click menu item (contents of menuItemName) of menu 1 of menu item "Bounce" of menu 1 of menu bar item "File" of menu bar 1
-                set bounceOpened to true
-                exit repeat
+                click menu bar item (contents of fileMenuName) of menu bar 1
+                delay 0.2
+
+                repeat with bounceMenuName in {{"Bounce", "Rebotar"}}
+                    try
+                        click menu item (contents of bounceMenuName) of menu 1 of menu bar item (contents of fileMenuName) of menu bar 1
+                        delay 0.2
+
+                        repeat with menuItemName in {{"Project or Section…", "Project or Section...", "Project or Section", "Proyecto o seccion…", "Proyecto o seccion...", "Proyecto o sección…", "Proyecto o sección..."}}
+                            try
+                                click menu item (contents of menuItemName) of menu 1 of menu item (contents of bounceMenuName) of menu 1 of menu bar item (contents of fileMenuName) of menu bar 1
+                                set bounceOpened to true
+                                exit repeat
+                            end try
+                        end repeat
+                    end try
+
+                    if bounceOpened is true then
+                        exit repeat
+                    end if
+                end repeat
             end try
+
+            if bounceOpened is true then
+                exit repeat
+            end if
         end repeat
 
         if bounceOpened is false then
-            error "No se encontro File > Bounce > Project or Section."
+            key code 53
+            delay 0.2
+            keystroke "b" using {{command down}}
+            delay 1.0
+            set bounceOpened to true
         end if
 
         delay 1.0
