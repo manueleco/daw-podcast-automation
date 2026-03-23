@@ -6,6 +6,7 @@ La idea base del repo es esta:
 
 - detectar proyectos de Logic
 - crear una copia de trabajo
+- alinear voces por archivo antes del bounce cuando los nombres lo permiten
 - abrir el proyecto en Logic y generar un bounce
 - medir loudness del bounce
 - corregir nivel final para dejar el episodio listo para distribucion
@@ -17,6 +18,7 @@ Ya esta montada la base del proyecto:
 - repo inicial
 - CLI en Python
 - perfiles iniciales de podcast
+- prepare mix base para audios de voz
 - automatizacion base para abrir Logic y lanzar bounce
 - medicion y correccion de loudness con ffmpeg
 - documento de MVP
@@ -62,8 +64,10 @@ python3 -m pip install -e .
 daw-podcast-automation scan --root "/ruta/a/proyectos"
 daw-podcast-automation profile --name podcast-stereo
 daw-podcast-automation plan --source "/ruta/episodio.logicx" --profile podcast-stereo
+daw-podcast-automation prepare-mix --source "/ruta/episodio.logicx" --profile podcast-stereo --open-in-logic
 daw-podcast-automation measure --input "/ruta/bounce.wav" --profile podcast-stereo
 daw-podcast-automation correct --input "/ruta/bounce.wav" --output "/ruta/bounce-master.wav" --profile podcast-stereo
+daw-podcast-automation final-master --input "/ruta/bounce.wav" --output "/ruta/bounce-master.wav" --profile podcast-stereo
 daw-podcast-automation run --source "/ruta/episodio.logicx" --profile podcast-stereo
 ```
 
@@ -80,7 +84,7 @@ Esto crea `DAW Podcast Automation.app` en el root del repo. Al abrirla:
 - eliges el proyecto o carpeta de Logic
 - eliges carpeta de salida
 - eliges el perfil
-- se lanza el flujo completo
+- se abre Terminal con el progreso visible del flujo completo
 
 ## Permisos
 
@@ -91,4 +95,4 @@ La parte de UI para Logic Pro necesita permisos de `Accessibility` y `Automation
 - validar el bounce real sobre un proyecto de Logic
 - ajustar la navegacion del dialogo de bounce segun la UI real
 - añadir fallback manual-asistido si la UI cambia
-- empezar a mapear roles de tracks para episodios con mas canales
+- mejorar la deteccion de voces y el prepare mix por track

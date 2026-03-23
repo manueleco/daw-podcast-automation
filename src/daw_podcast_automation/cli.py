@@ -6,6 +6,7 @@ from pathlib import Path
 from .audio import LoudnessMeasurement, correct_loudness, measure_loudness
 from .fs import copy_logic_project
 from .logic import BounceRequest, bounce_project, open_project_in_logic
+from .prepare import prepare_voice_tracks
 from .profiles import get_profile
 from .workflow import build_run_plan, discover_logic_projects, resolve_logic_project_path
 
@@ -96,6 +97,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--dual-mono", action="store_true", help="Trata mono como dual mono.")
 
+    prepare_mix = subparsers.add_parser(
+        "prepare-mix",
+        help="Clona proyecto y aplica ganancia base a archivos de voz antes del bounce.",
+    )
+    prepare_mix.add_argument("--source", type=Path, required=True, help="Proyecto fuente de Logic.")
+    prepare_mix.add_argument("--profile", default="podcast-stereo", help="Perfil a usar.")
+    prepare_mix.add_argument(
+        "--output-root",
+        type=Path,
+        help="Directorio donde vivira la copia de trabajo.",
+    )
+    prepare_mix.add_argument(
+        "--open-in-logic",
+        action="store_true",
+        help="Abre la copia resultante en Logic Pro al terminar.",
+    )
+
+    final_master = subparsers.add_parser(
+        "final-master",
+        help="Mide y corrige el bounce final para entrega.",
+    )
+    final_master.add_argument("--input", type=Path, required=True, help="Bounce final de entrada.")
+    final_master.add_argument("--output", type=Path, required=True, help="Master final corregido.")
+    final_master.add_argument("--profile", default="podcast-stereo", help="Perfil a usar.")
+    final_master.add_argument("--dual-mono", action="store_true", help="Trata mono como dual mono.")
+
     return parser
 
 
@@ -154,6 +181,8 @@ def cmd_correct(input_path: Path, output_path: Path, profile_name: str, dual_mon
         profile=profile,
         measurement=measurement,
         dual_mono=dual_mono,
+        sample_rate_hz=profile.sample_rate_hz,
+        channel_mode=profile.channel_mode,
     )
     final_measurement = measure_loudness(corrected, profile, dual_mono=dual_mono)
     print(f"corrected_output: {corrected}")
@@ -191,11 +220,19 @@ def cmd_run(
     profile = get_profile(profile_name)
     resolved_source = resolve_logic_project_path(source)
     plan = build_run_plan(source_project=resolved_source, profile=profile, output_root=output_root)
+    _emit_stage("prepare-mix", "Clonando proyecto")
     working_copy = copy_logic_project(plan.source_project, plan.working_copy)
+    _emit_stage("prepare-mix", "Aplicando ganancia base a voces")
+    prepare_summary = prepare_voice_tracks(working_copy, profile)
 
     bounce_path = working_copy.parent / f"{working_copy.stem}__bounce.{profile.export_format}"
     corrected_path = working_copy.parent / f"{working_copy.stem}__master.{profile.export_format}"
 
+    print(f"prepare_mix_report: {prepare_summary.report_path}")
+    print(f"prepare_mix_voice_files: {prepare_summary.voice_files}")
+    print(f"prepare_mix_adjusted_files: {prepare_summary.adjusted_files}")
+
+    _emit_stage("logic-bounce", "Generando bounce en Logic Pro")
     bounce_project(
         BounceRequest(
             project_path=working_copy,
@@ -205,13 +242,17 @@ def cmd_run(
         )
     )
 
+    _emit_stage("final-master", "Midiendo bounce final")
     measurement = measure_loudness(bounce_path, profile, dual_mono=dual_mono)
+    _emit_stage("final-master", "Corrigiendo master final")
     correct_loudness(
         input_path=bounce_path,
         output_path=corrected_path,
         profile=profile,
         measurement=measurement,
         dual_mono=dual_mono,
+        sample_rate_hz=profile.sample_rate_hz,
+        channel_mode=profile.channel_mode,
     )
     final_measurement = measure_loudness(corrected_path, profile, dual_mono=dual_mono)
 
@@ -220,6 +261,40 @@ def cmd_run(
     print(f"corrected_output: {corrected_path}")
     _print_measurement(final_measurement)
     return 0
+
+
+def cmd_prepare_mix(
+    source: Path,
+    profile_name: str,
+    output_root: Path | None,
+    open_in_logic: bool,
+) -> int:
+    profile = get_profile(profile_name)
+    resolved_source = resolve_logic_project_path(source)
+    plan = build_run_plan(source_project=resolved_source, profile=profile, output_root=output_root)
+    _emit_stage("prepare-mix", "Clonando proyecto")
+    working_copy = copy_logic_project(plan.source_project, plan.working_copy)
+    _emit_stage("prepare-mix", "Aplicando ganancia base a voces")
+    summary = prepare_voice_tracks(working_copy, profile)
+
+    print(f"working_copy: {working_copy}")
+    print(f"prepare_mix_report: {summary.report_path}")
+    print(f"prepare_mix_analyzed_files: {summary.analyzed_files}")
+    print(f"prepare_mix_voice_files: {summary.voice_files}")
+    print(f"prepare_mix_adjusted_files: {summary.adjusted_files}")
+
+    if open_in_logic:
+        _emit_stage("prepare-mix", "Abriendo copia en Logic Pro")
+        open_project_in_logic(working_copy)
+        print(f"opened_project: {working_copy}")
+
+    return 0
+
+
+def cmd_final_master(input_path: Path, output_path: Path, profile_name: str, dual_mono: bool) -> int:
+    _emit_stage("final-master", "Midiendo bounce final")
+    result = cmd_correct(input_path, output_path, profile_name, dual_mono)
+    return result
 
 
 def _print_measurement(measurement: LoudnessMeasurement) -> None:
@@ -235,6 +310,10 @@ def _print_measurement(measurement: LoudnessMeasurement) -> None:
         print(f"predicted_output_true_peak_dbtp: {measurement.output_true_peak_dbtp}")
     if measurement.normalization_type:
         print(f"normalization_type: {measurement.normalization_type}")
+
+
+def _emit_stage(stage_key: str, message: str) -> None:
+    print(f"[stage:{stage_key}] {message}", flush=True)
 
 
 def main() -> int:
@@ -264,6 +343,10 @@ def main() -> int:
             timeout_seconds=args.timeout_seconds,
             dual_mono=args.dual_mono,
         )
+    if args.command == "prepare-mix":
+        return cmd_prepare_mix(args.source, args.profile, args.output_root, args.open_in_logic)
+    if args.command == "final-master":
+        return cmd_final_master(args.input, args.output, args.profile, args.dual_mono)
 
     parser.error(f"Comando no soportado: {args.command}")
     return 2

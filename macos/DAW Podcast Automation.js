@@ -22,7 +22,7 @@ function run() {
   }
 
   const introText =
-    "Se va a crear una copia de trabajo, abrir Logic Pro, hacer bounce, medir loudness y generar un master corregido.";
+    "Se abrira Terminal para que veas el progreso: prepare mix, bounce, medicion y master final.";
   const confirmation = app.displayDialog(introText, {
     withTitle: "DAW Podcast Automation",
     buttons: ["Cancelar", "Continuar"],
@@ -35,7 +35,7 @@ function run() {
   const shellCommand =
     "cd " +
     shellQuote(repoRoot) +
-    " && PYTHONPATH=src python3 -m daw_podcast_automation run --source " +
+    " && clear && echo '[daw-podcast-automation] iniciando...' && PYTHONPATH=src python3 -m daw_podcast_automation run --source " +
     shellQuote(sourceProject) +
     " --profile " +
     shellQuote(profileName) +
@@ -43,13 +43,15 @@ function run() {
     shellQuote(outputFolder);
 
   try {
-    const commandOutput = app.doShellScript(shellCommand);
-    const finalResult = app.displayDialog("Proceso terminado.\n\n" + commandOutput, {
+    const terminal = Application("Terminal");
+    terminal.activate();
+    terminal.doScript(shellCommand);
+    const launchResult = app.displayDialog("Se abrio Terminal con el proceso en marcha.", {
       withTitle: "DAW Podcast Automation",
-      buttons: ["Cerrar", "Abrir carpeta"],
-      defaultButton: "Abrir carpeta",
+      buttons: ["OK", "Abrir carpeta"],
+      defaultButton: "OK",
     });
-    if (finalResult.buttonReturned === "Abrir carpeta") {
+    if (launchResult.buttonReturned === "Abrir carpeta") {
       app.doShellScript("open " + shellQuote(outputFolder));
     }
   } catch (error) {

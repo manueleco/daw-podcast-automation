@@ -5,6 +5,8 @@
 - Validar el flujo real de bounce sobre un proyecto de Logic con permisos de sistema completos.
 - Ajustar la navegacion del cuadro de bounce segun la UI real del equipo.
 - Afinar el perfil de salida para episodios con mas canales y casos con musica.
+- Separar mejor `prepare mix` de `final master` en la app y el CLI.
+- Revisar si la ganancia base por archivo de voz esta acercando bien a las voces o necesita otro target.
 
 ## Todo
 
@@ -15,6 +17,8 @@
 - Implementar lectura de configuracion por perfil.
 - Añadir reintentos o fallback manual para bounce si la UI no coincide.
 - Afinar el launcher GUI con mejor feedback de progreso y errores.
+- Evaluar automatizacion por fragmentos dentro de una track usando reporte por ventanas y luego traducirlo a automation o region gain.
+- Detectar mejor voces cuando los nombres de archivos no ayudan.
 - Preparar una carpeta de fixtures o episodios dummy para pruebas.
 - Añadir tests para discovery, planes de ejecucion y reglas de naming.
 - Documentar el setup minimo en macOS para permisos de automatizacion.
@@ -33,9 +37,20 @@
 - Correccion automatica de loudness integrada.
 - Launcher macOS con dialogs nativos añadido.
 - Builder para generar `DAW Podcast Automation.app` añadido.
+- Launcher actualizado para correr visible en Terminal.
+- Comando `prepare-mix` añadido.
+- Primera pasada de ganancia base por archivo de voz antes del bounce añadida.
+
+## Ideas
+
+- Mantener la automatizacion final de LUFS siempre en master, no repartir ese target entre tracks.
+- Usar ajuste base por archivo o track de voz para alinear speakers.
+- Si luego vamos a automatizacion por fragmentos, hacerlo por ventanas con limites de ganancia y suavizado, no con saltos bruscos.
+- Traducir a Logic solo cuando tengamos claro el modelo: `track automation`, `region gain`, o render destructivo sobre la working copy.
 
 ## Notas
 
 - Los proyectos originales no se tocan.
 - El flujo del MVP parte siempre de una copia de trabajo.
 - El ajuste de loudness final se hara sobre bounce y salida, no moviendo ciegamente todos los faders por track.
+- La ganancia base de voz previa al bounce es una primera pasada utilitaria, no mezcla final.

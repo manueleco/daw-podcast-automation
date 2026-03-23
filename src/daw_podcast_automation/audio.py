@@ -25,6 +25,12 @@ class LoudnessMeasurement:
     normalization_type: str | None = None
 
 
+@dataclass(frozen=True)
+class AudioStreamInfo:
+    sample_rate_hz: int
+    channels: int
+
+
 def measure_loudness(
     input_path: Path,
     profile: PodcastProfile,
@@ -81,6 +87,8 @@ def correct_loudness(
     *,
     loudness_range_target: float = 11.0,
     dual_mono: bool = False,
+    sample_rate_hz: int | None = None,
+    channel_mode: str | None = None,
 ) -> Path:
     input_path = input_path.expanduser().resolve()
     output_path = output_path.expanduser().resolve()
@@ -111,11 +119,12 @@ def correct_loudness(
         str(input_path),
         "-af",
         filter_expr,
-        "-ar",
-        str(profile.sample_rate_hz),
-        "-ac",
-        "1" if profile.channel_mode == "mono" else "2",
     ]
+
+    if sample_rate_hz is not None:
+        command.extend(["-ar", str(sample_rate_hz)])
+    if channel_mode is not None:
+        command.extend(["-ac", "1" if channel_mode == "mono" else "2"])
 
     if output_path.suffix.lower() == ".wav":
         command.extend(["-c:a", "pcm_s24le"])
@@ -127,6 +136,39 @@ def correct_loudness(
         raise LoudnessError(result.stderr.strip() or "No se pudo corregir loudness con ffmpeg.")
 
     return output_path
+
+
+def probe_audio_stream(input_path: Path) -> AudioStreamInfo:
+    input_path = input_path.expanduser().resolve()
+    if not input_path.exists():
+        raise FileNotFoundError(f"No existe el archivo de audio: {input_path}")
+
+    command = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "a:0",
+        "-show_entries",
+        "stream=sample_rate,channels",
+        "-of",
+        "json",
+        str(input_path),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise LoudnessError(result.stderr.strip() or "No se pudo leer metadata del audio.")
+
+    payload = json.loads(result.stdout)
+    streams = payload.get("streams", [])
+    if not streams:
+        raise LoudnessError(f"No se encontro stream de audio en: {input_path}")
+
+    stream = streams[0]
+    return AudioStreamInfo(
+        sample_rate_hz=int(stream["sample_rate"]),
+        channels=int(stream["channels"]),
+    )
 
 
 def _extract_json_payload(stderr: str) -> dict[str, str]:
