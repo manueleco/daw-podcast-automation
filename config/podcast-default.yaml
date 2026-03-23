@@ -1,0 +1,24 @@
+profile: podcast-stereo
+target_integrated_lufs: -16.0
+target_true_peak_dbtp: -1.0
+sample_rate_hz: 48000
+channel_mode: stereo
+export_format: wav
+roles:
+  voice:
+    match:
+      - voz
+      - voice
+      - host
+      - guest
+  music:
+    match:
+      - music
+      - musica
+      - intro
+      - outro
+  fx:
+    match:
+      - fx
+      - sfx
+      - stinger
