@@ -52,8 +52,9 @@ DEFAULT_PROFILES: dict[str, PodcastProfile] = {
 
 
 def get_profile(name: str) -> PodcastProfile:
+    normalized_name = name.strip() or "podcast-stereo"
     try:
-        return DEFAULT_PROFILES[name]
+        return DEFAULT_PROFILES[normalized_name]
     except KeyError as exc:
         available = ", ".join(sorted(DEFAULT_PROFILES))
-        raise KeyError(f"Perfil desconocido: {name}. Disponibles: {available}") from exc
+        raise ValueError(f"Perfil desconocido: {normalized_name}. Disponibles: {available}") from exc

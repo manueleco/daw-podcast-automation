@@ -12,14 +12,9 @@ function run() {
       shellQuote(repoRoot) +
       " && PYTHONPATH=src " +
       shellQuote(pythonPath) +
-      " -m daw_podcast_automation.gui >/tmp/daw-podcast-automation-gui.log 2>&1 &";
+      " -m daw_podcast_automation.gui >/tmp/logic-podcast-automation-gui.log 2>&1 &";
 
     app.doShellScript(launchCommand);
-    app.displayDialog("La app ya se esta abriendo en una ventana propia.", {
-      withTitle: "DAW Podcast Automation",
-      buttons: ["OK"],
-      defaultButton: "OK",
-    });
   } catch (error) {
     const message = [
       "No se pudo abrir la app.",
@@ -27,7 +22,7 @@ function run() {
       error.message || String(error),
     ].join("\n");
     app.displayDialog(message, {
-      withTitle: "DAW Podcast Automation",
+      withTitle: "Logic Podcast Automation",
       buttons: ["Cerrar"],
       defaultButton: "Cerrar",
     });

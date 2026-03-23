@@ -1,6 +1,8 @@
 const state = {
   outputPath: "",
   processRunning: false,
+  generalLogPath: "",
+  errorLogPath: "",
 };
 
 const els = {
@@ -29,7 +31,8 @@ const els = {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   await hydrateInitialState();
-  addLogLine("Listo. La app puede lanzar sesiones y analisis por track.", "stage");
+  addLogLine("Listo. La app ya puede correr sesiones y generar analisis con segmentos, marcadores y automation draft.", "stage");
+  addLogLine(`Logs: ${state.generalLogPath}`, "stage");
 });
 
 function bindEvents() {
@@ -67,7 +70,7 @@ function bindEvents() {
       await window.pywebview.api.run_session({
         source: els.projectPath.value,
         output_root: els.outputPath.value,
-        profile: els.profileSelect.value,
+        profile: els.profileSelect.value || "podcast-stereo",
         mode: els.modeSelect.value,
         open_in_logic: els.openInLogic.checked,
       });
@@ -90,6 +93,7 @@ function bindEvents() {
       await window.pywebview.api.analyze_audio_track({
         source: els.trackPath.value,
         report: els.trackReport.value,
+        profile: els.profileSelect.value || "podcast-stereo",
         window_seconds: els.windowSeconds.value,
         delta_db: els.deltaDb.value,
         silence_top_db: els.silenceTopDb.value,
@@ -107,13 +111,23 @@ function bindEvents() {
 async function hydrateInitialState() {
   const initial = await window.pywebview.api.get_initial_state();
   state.outputPath = initial.default_output_root;
+  state.generalLogPath = initial.general_log_path;
+  state.errorLogPath = initial.error_log_path;
   els.outputPath.value = initial.default_output_root;
-  els.pythonPill.textContent = initial.python_path;
+  els.pythonPill.textContent = initial.python_label;
   for (const profile of initial.profiles) {
     const option = document.createElement("option");
     option.value = profile;
     option.textContent = profile;
     els.profileSelect.appendChild(option);
+  }
+  els.profileSelect.value = initial.default_profile;
+}
+
+function setProcessRunning(isRunning) {
+  state.processRunning = isRunning;
+  for (const element of [els.runSession, els.analyzeTrack, els.pickProject, els.pickOutput, els.pickTrack]) {
+    element.disabled = isRunning;
   }
 }
 
@@ -137,20 +151,35 @@ window.onProcessLine = (payload) => {
 };
 
 window.onProcessState = (payload) => {
-  state.processRunning = payload.status === "running";
   if (payload.status === "running") {
+    setProcessRunning(true);
     els.runtimePill.textContent = "Running";
-    els.runtimePill.className = "pill pill-soft";
+    els.runtimePill.className = "pill pill-running";
+    if (payload.session_log_path) {
+      addLogLine(`Session log: ${payload.session_log_path}`, "stage");
+    }
   } else if (payload.status === "success") {
+    setProcessRunning(false);
     els.runtimePill.textContent = "Done";
-    els.runtimePill.className = "pill pill-soft";
+    els.runtimePill.className = "pill pill-success";
     addLogLine(payload.message || "Proceso terminado.", "stage");
+    if (payload.session_log_path) {
+      addLogLine(`Session log: ${payload.session_log_path}`, "stage");
+    }
   } else if (payload.status === "error") {
+    setProcessRunning(false);
     els.runtimePill.textContent = "Needs attention";
-    els.runtimePill.className = "pill";
+    els.runtimePill.className = "pill pill-warning";
     addLogLine(payload.message || "Proceso terminado con error.", "error");
+    if (payload.session_log_path) {
+      addLogLine(`Session log: ${payload.session_log_path}`, "error");
+    }
+    if (state.errorLogPath) {
+      addLogLine(`Error log: ${state.errorLogPath}`, "error");
+    }
   } else {
+    setProcessRunning(false);
     els.runtimePill.textContent = "Listo";
-    els.runtimePill.className = "pill pill-soft";
+    els.runtimePill.className = "pill pill-success";
   }
 };

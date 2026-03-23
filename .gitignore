@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 .internal/
 DAW Podcast Automation.app/
+Logic Podcast Automation.app/
+runtime-logs/
 dist/
 build/
 *.egg-info/

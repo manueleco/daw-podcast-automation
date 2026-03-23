@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from .runtime_logs import append_general_log
 from .workflow import resolve_logic_project_path
 
 
@@ -18,6 +19,13 @@ class BounceRequest:
     output_path: Path
     open_wait_seconds: float = 6.0
     timeout_seconds: int = 900
+
+
+@dataclass(frozen=True)
+class MarkerCreateRequest:
+    project_path: Path
+    name: str
+    open_wait_seconds: float = 6.0
 
 
 def open_project_in_logic(project_path: Path, *, wait_seconds: float = 6.0) -> Path:
@@ -35,6 +43,24 @@ def open_project_in_logic(project_path: Path, *, wait_seconds: float = 6.0) -> P
 def activate_logic() -> None:
     script = 'tell application "Logic Pro" to activate'
     _run_osascript(script, require_ui=False)
+
+
+def open_marker_list(project_path: Path, *, wait_seconds: float = 6.0) -> Path:
+    project_path = open_project_in_logic(project_path, wait_seconds=wait_seconds)
+    _run_osascript(_build_open_marker_list_script(), require_ui=True)
+    append_general_log(f"[logic] Marker List abierta para {project_path}")
+    return project_path
+
+
+def create_named_marker_at_playhead(request: MarkerCreateRequest) -> str:
+    marker_name = request.name.strip()
+    if not marker_name:
+        raise ValueError("El nombre del marker no puede estar vacio.")
+
+    open_marker_list(request.project_path, wait_seconds=request.open_wait_seconds)
+    _run_osascript(_build_create_marker_script(marker_name), require_ui=True)
+    append_general_log(f"[logic] Marker creado en playhead actual con nombre `{marker_name}`.")
+    return marker_name
 
 
 def bounce_project(request: BounceRequest) -> Path:
@@ -125,6 +151,38 @@ end tell
 '''.strip()
 
 
+def _build_open_marker_list_script() -> str:
+    return '''
+tell application "Logic Pro" to activate
+delay 0.4
+tell application "System Events"
+    tell process "Logic Pro"
+        set frontmost to true
+        delay 0.2
+        click menu item "Open Marker List" of menu 1 of menu bar item "Navigate" of menu bar 1
+    end tell
+end tell
+'''.strip()
+
+
+def _build_create_marker_script(marker_name: str) -> str:
+    escaped_name = _as_applescript_string(marker_name)
+    return f'''
+tell application "Logic Pro" to activate
+delay 0.3
+tell application "System Events"
+    tell process "Logic Pro"
+        set frontmost to true
+        click button 1 of group 1 of window 1 whose name contains "Marker List"
+        delay 0.3
+        tell text area 1 of scroll area 1 of group 1 of window 1 whose name contains "Marker List"
+            set value of attribute "AXValue" to "{escaped_name}"
+        end tell
+    end tell
+end tell
+'''.strip()
+
+
 def _run_osascript(script: str, *, require_ui: bool) -> str:
     command = ["osascript", "-e", script]
     result = subprocess.run(command, capture_output=True, text=True, check=False)
@@ -138,7 +196,7 @@ def _run_osascript(script: str, *, require_ui: bool) -> str:
         )
     if require_ui and ("not allowed to send keystrokes" in message.lower() or "(1002)" in message):
         raise LogicAutomationError(
-            "macOS esta bloqueando el envio de keystrokes. Activa Accessibility para Terminal y para DAW Podcast Automation.app, y si hace falta Input Monitoring para Terminal. Luego vuelve a abrir la app."
+            "macOS esta bloqueando el envio de keystrokes. Activa Accessibility y, si hace falta, Input Monitoring para Logic Podcast Automation.app o para Terminal segun desde donde lo abras. Luego vuelve a abrir la app."
         )
     raise LogicAutomationError(message)
 
